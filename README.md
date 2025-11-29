@@ -16,7 +16,7 @@
 
 ```bash
 # リポジトリをクローン
-git clone https://github.com/your-username/board-comment-extractor.git
+git clone https://github.com/kuro1163/board-comment-extractor.git
 cd board-comment-extractor
 
 # 仮想環境を作成（推奨）
