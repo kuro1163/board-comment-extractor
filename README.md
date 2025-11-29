@@ -95,6 +95,7 @@ python extract_comments.py "https://example.com/board-summary" --format csv -o o
 
 以下のような掲示板まとめサイトに対応しています：
 
+- **あにまん掲示板 (animanch.com)** - 専用抽出ロジック対応
 - 5chまとめサイト
 - その他の掲示板まとめサイト（コメント番号（>>1, >>2など）を含むサイト）
 
