@@ -16,8 +16,12 @@
 3. リポジトリ名を入力（例: `board-comment-extractor`）
 4. 説明を入力（例: "掲示板まとめサイトからコメントを抽出してYouTube台本形式のスプレッドシートに変換するツール"）
 5. PublicまたはPrivateを選択
-6. **「Initialize this repository with a README」のチェックを外す**（既にREADMEがあるため）
+6. **「Initialize this repository with a README」のオプションについて**：
+   - オプションが表示されない場合：そのまま「Create repository」をクリック（問題ありません）
+   - オプションが表示される場合：チェックを外す（既にREADMEがあるため）
 7. 「Create repository」をクリック
+
+**注意**: もしGitHubでREADMEを作成してしまった場合でも、後でマージできます（手順3で説明）
 
 ### 2. ローカルリポジトリを準備
 
@@ -40,6 +44,20 @@ git remote add origin https://github.com/your-username/board-comment-extractor.g
 
 # またはSSHを使用する場合
 # git remote add origin git@github.com:your-username/board-comment-extractor.git
+```
+
+**GitHubでREADMEを作成してしまった場合**：
+GitHubでREADMEを作成してしまった場合は、以下のコマンドでマージしてからプッシュします：
+
+```bash
+# GitHubのREADMEを取得
+git pull origin main --allow-unrelated-histories
+
+# コンフリクトが発生した場合は、ローカルのREADMEを優先
+# または手動でマージ
+
+# その後、プッシュ
+git push -u origin main
 ```
 
 ### 4. ブランチ名を確認・変更
