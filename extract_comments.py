@@ -45,11 +45,15 @@ class CommentExtractor:
         comments = []
         seen_texts = set()  # 重複チェック用
         
+        # あにまん掲示板専用の抽出ロジック
+        if 'animanch.com' in self.domain:
+            return self._extract_animanch_comments(soup, seen_texts)
+        
         # パターン1: コメント番号（>>1, >>2など）を含む要素を検索
         numbered_pattern = re.compile(r'>>\d+')
         
         # コメント番号を含むテキストノードを検索
-        for text_node in soup.find_all(text=numbered_pattern):
+        for text_node in soup.find_all(string=numbered_pattern):
             parent = text_node.find_parent(['div', 'p', 'li', 'article', 'section'])
             if parent:
                 text = parent.get_text(separator=' ', strip=True)
@@ -127,6 +131,82 @@ class CommentExtractor:
             comments_with_number.sort(key=lambda x: int(x['number']))
         
         return comments_with_number + comments_without_number
+    
+    def _extract_animanch_comments(self, soup: BeautifulSoup, seen_texts: set) -> List[Dict[str, str]]:
+        """あにまん掲示板専用のコメント抽出"""
+        comments = []
+        
+        # IDがresで始まる要素を検索（res1, res2, res3など）
+        for elem in soup.find_all(id=re.compile(r'^res\d+$')):
+            # フォーム部分を除外
+            if 'resform' in str(elem.get('class', [])):
+                continue
+            
+            text = elem.get_text(separator=' ', strip=True)
+            if not text or len(text) < 10:
+                continue
+            
+            # IDからレス番号を取得（res1 -> 1）
+            res_id = elem.get('id', '')
+            res_number_match = re.search(r'res(\d+)', res_id)
+            if not res_number_match:
+                continue
+            res_number = res_number_match.group(1)
+            
+            # 発言者名とコメント内容を抽出
+            # パターン: "1スレ主25/11/29(土) 15:39:202報告"コメント内容"
+            speaker_match = re.search(r'^\d+([^0-9]+?)\d{2}/\d{2}/\d{2}', text)
+            if speaker_match:
+                speaker_raw = speaker_match.group(1).strip()
+                speaker = self._clean_animanch_speaker(speaker_raw)
+            else:
+                speaker = "匿名"
+            
+            # コメント内容を抽出（日付情報の後から）
+            # 「報告」の後のテキストを取得
+            report_match = re.search(r'報告(.+)$', text)
+            if report_match:
+                comment_text = report_match.group(1).strip()
+            else:
+                # 「報告」がない場合は、日付の後のテキストを取得
+                date_match = re.search(r'\d{2}:\d{2}:\d{2}(.+)$', text)
+                if date_match:
+                    comment_text = date_match.group(1).strip()
+                else:
+                    # フォールバック: 最初の数字と日付を除いた部分
+                    comment_text = re.sub(r'^\d+[^\d]+?\d{2}/\d{2}/\d{2}[^"]*', '', text).strip()
+            
+            # 空のコメントはスキップ
+            if not comment_text or len(comment_text) < 5:
+                continue
+            
+            # 重複チェック
+            comment_key = f"{res_number}:{comment_text[:50]}"
+            if comment_key in seen_texts:
+                continue
+            seen_texts.add(comment_key)
+            
+            comments.append({
+                'number': res_number,
+                'speaker': speaker,
+                'text': comment_text
+            })
+        
+        # レス番号でソート
+        comments.sort(key=lambda x: int(x['number']) if x['number'].isdigit() else 9999)
+        return comments
+    
+    def _clean_animanch_speaker(self, speaker_raw: str) -> str:
+        """あにまん掲示板の発言者名をクリーンアップ"""
+        # 日付パターンを除去（25/11/29(土) 15:39:20など）
+        speaker = re.sub(r'\d{2}/\d{2}/\d{2}\(.*?\)\s+\d{2}:\d{2}:\d{2}', '', speaker_raw)
+        speaker = speaker.strip()
+        
+        # 空の場合は「匿名」
+        if not speaker:
+            return "匿名"
+        
+        return speaker
     
     def _extract_speaker(self, element, text: str) -> str:
         """発言者名を抽出"""
